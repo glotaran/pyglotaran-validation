@@ -60,7 +60,7 @@ class GitError(Exception):
 def get_compare_results_path() -> Path:
     """Ensure that the comparison-results exist, are up to date and return their path."""
     compare_result_folder = REPO_ROOT / "comparison-results"
-    example_repo = "git@github.com:glotaran/pyglotaran-examples.git"
+    example_repo = "https://github.com/glotaran/pyglotaran-examples.git"
     if not compare_result_folder.exists():
         proc_clone = subprocess.run(
             [
