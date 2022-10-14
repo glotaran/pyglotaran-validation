@@ -60,7 +60,7 @@ class GitError(Exception):
 def get_compare_results_path() -> Path:
     """Ensure that the comparison-results exist, are up to date and return their path."""
     compare_result_folder = REPO_ROOT / "comparison-results"
-    example_repo = "git@github.com:glotaran/pyglotaran-examples.git"
+    example_repo = "https://github.com/glotaran/pyglotaran-examples.git"
     if not compare_result_folder.exists():
         proc_clone = subprocess.run(
             [
@@ -112,13 +112,15 @@ def get_compare_results_path() -> Path:
 def get_current_result_path() -> Path:
     """Get the path of the current results."""
     local_path = Path.home() / "pyglotaran_examples_results"
-    ci_path = REPO_ROOT / "comparison-results-current"
+    ci_path = Path(os.getenv("GITHUB_WORKSPACE", "")) / "comparison-results-current"
     if local_path.exists():
         return local_path
     elif ci_path.exists():
         return ci_path
     else:
-        raise ValueError(f"No current results present, {RUN_EXAMPLES_MSG}")
+        raise ValueError(
+            f"No current results present at {local_path} or {ci_path}, {RUN_EXAMPLES_MSG}"
+        )
 
 
 def rename_with_suffix(

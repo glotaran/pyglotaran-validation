@@ -1,0 +1,28 @@
+name: "pyglotaran validation"
+description: "Run pyglotaran validation to confirm validity of results"
+author: "Sebastian Weigand"
+inputs:
+  validation_name:
+    description: "Which validator to run {all, pyglotaran-examples}"
+    default: "all"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install requirements
+      shell: bash
+      run: |
+        pip install -r ${{ github.action_path }}/requirements.txt
+
+    - name: Run all validation tests
+      shell: bash
+      if: inputs.set_example_list == 'all'
+      run: |
+        pytest ${{ github.action_path }}
+
+    - name: Run ${{ inputs.set_example_list }} validation tests
+      shell: bash
+      if: inputs.set_example_list != 'all'
+      run: |
+        pytest ${{ github.action_path }}/${{ inputs.set_example_list }}
