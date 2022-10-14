@@ -112,13 +112,15 @@ def get_compare_results_path() -> Path:
 def get_current_result_path() -> Path:
     """Get the path of the current results."""
     local_path = Path.home() / "pyglotaran_examples_results"
-    ci_path = REPO_ROOT / "comparison-results-current"
+    ci_path = Path(os.getenv("GITHUB_WORKSPACE", "")) / "comparison-results-current"
     if local_path.exists():
         return local_path
     elif ci_path.exists():
         return ci_path
     else:
-        raise ValueError(f"No current results present, {RUN_EXAMPLES_MSG}")
+        raise ValueError(
+            f"No current results present at {local_path} or {ci_path}, {RUN_EXAMPLES_MSG}"
+        )
 
 
 def rename_with_suffix(
