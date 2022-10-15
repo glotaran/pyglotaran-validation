@@ -130,3 +130,6 @@ dmypy.json
 
 # VSCode config
 .vscode
+
+# pyglotaran-examples results to compare against
+pyglotaran-examples/comparison-results
