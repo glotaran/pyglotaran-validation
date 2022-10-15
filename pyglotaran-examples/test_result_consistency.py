@@ -253,7 +253,7 @@ def data_var_test(
             expected_values = expected_values.transpose(*current_values.dims)
         rtol = 1e-4  # instead of 1e-5
         eps = 1e-5  # instead of ~1.2e-7
-        pre_fix = SVD_PATTERN.match(expected_var_name).group(  # type:ignore[operator]
+        pre_fix = SVD_PATTERN.match(expected_var_name).group(  # type:ignore[union-attr]
             "pre_fix"
         )
         expected_singular_values = expected_result.data_vars[f"{pre_fix}singular_values"]
@@ -307,8 +307,8 @@ def data_var_test(
 def map_result_files(file_glob_pattern: str) -> dict[str, list[tuple[Path, Path]]]:
     """Load all datasets and map them in a dict."""
     result_map = defaultdict(list)
-    if os.getenv("COMPARE_RESULTS_LOCAL"):
-        compare_results_path = Path(os.getenv(key="COMPARE_RESULTS_LOCAL"))
+    if (compare_results_path_str := os.getenv("COMPARE_RESULTS_LOCAL")) is not None:
+        compare_results_path = Path(compare_results_path_str)
         warn(
             dedent(
                 f"""
