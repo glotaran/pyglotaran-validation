@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from xarray.core.coordinates import DataArrayCoordinates
 
 
-REPO_ROOT = Path(__file__).parent.parent
+HERE = Path(__file__).parent
 RUN_EXAMPLES_MSG = (
     "run 'python scripts/run_examples.py run-all --headless' "
     "in the 'pyglotaran-examples' repo root."
@@ -59,7 +59,7 @@ class GitError(Exception):
 
 def get_compare_results_path() -> Path:
     """Ensure that the comparison-results exist, are up to date and return their path."""
-    compare_result_folder = REPO_ROOT / "comparison-results"
+    compare_result_folder = HERE / "comparison-results"
     example_repo = "https://github.com/glotaran/pyglotaran-examples.git"
     if not compare_result_folder.exists():
         proc_clone = subprocess.run(
