@@ -1,13 +1,7 @@
 name: "Test pyglotaran examples"
 
 on:
-  push:
-    branches-ignore:
-      - "dependabot/**"
-      - "sourcery/**"
-      - "pre-commit-ci-update-config"
-  pull_request:
-  workflow_dispatch:
+  workflow_call:
 
 jobs:
   create-example-list:
