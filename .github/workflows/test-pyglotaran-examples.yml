@@ -122,13 +122,9 @@ jobs:
           validation_name: pyglotaran-examples
 
       - name: Remove comparison-results
-        run: rm -rf comparison-results
-
-      - name: Download result artifact to comparison-results
-        uses: actions/download-artifact@v3
-        with:
-          name: example-results
-          path: comparison-results
+        run: |
+          rm -rf comparison-results
+          cp -r comparison-results-current comparison-results
 
       - name: Test validator new result parsing
         uses: ./
