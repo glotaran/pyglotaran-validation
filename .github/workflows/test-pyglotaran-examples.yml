@@ -17,12 +17,8 @@ jobs:
           ref: comparison-results
           path: comparison-results
 
-      - name: Checkout compare results to comparison-results-current
-        uses: actions/checkout@v3
-        with:
-          repository: "glotaran/pyglotaran-examples"
-          ref: comparison-results
-          path: comparison-results-current
+      - name: Copy comparison-results to comparison-results-current
+        run: cp -r comparison-results comparison-results-current
 
       - name: Run result validator
         uses: ./
