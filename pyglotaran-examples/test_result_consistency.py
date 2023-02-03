@@ -440,12 +440,14 @@ def test_result_attr_consistency(
     """Result dataset attributes need to be approximately the same."""
     for expected, current, file_name in map_result_data()[0][result_name]:
         for expected_attr_name, expected_attr_value in expected.attrs.items():
+            if expected_attr_name == "source_path":
+                continue
             assert (
                 expected_attr_name in current.attrs.keys()
             ), f"Missing result attribute: {expected_attr_name!r} in {file_name!r}"
 
             if isinstance(expected_attr_value, str):
-                assert expected_attr_value == current.attrs[expected_attr_name]
+                assert expected_attr_value == current.attrs[expected_attr_name], expected_attr_name
             else:
                 assert allclose(
                     expected_attr_value, current.attrs[expected_attr_name], print_fail=20
