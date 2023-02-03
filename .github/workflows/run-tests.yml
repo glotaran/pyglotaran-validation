@@ -8,6 +8,8 @@ on:
       - "pre-commit-ci-update-config"
   pull_request:
   workflow_dispatch:
+  schedule:
+    - cron: "0 22 * * 5"
 
 jobs:
   pre-commit:
