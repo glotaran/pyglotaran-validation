@@ -252,7 +252,7 @@ def data_var_test(
             )
             expected_values = expected_values.transpose(*current_values.dims)
         rtol = 1e-4  # instead of 1e-5
-        eps = 1e-5  # instead of ~1.2e-7
+        eps = 1e-5  # type:ignore[assignment] # instead of ~1.2e-7
         pre_fix = SVD_PATTERN.match(expected_var_name).group(  # type:ignore[union-attr]
             "pre_fix"
         )
@@ -387,7 +387,7 @@ def map_result_parameters() -> dict[str, list[pd.DataFrame]]:
     """Load all optimized parameter files and map them in a dict."""
 
     result_map = defaultdict(list)
-    result_file_map = map_result_files(file_glob_pattern="*.csv")
+    result_file_map = map_result_files(file_glob_pattern="*parameters.csv")
     for key, path_list in result_file_map.items():
         for expected_result_file, current_result_file in path_list:
             compare_df = pd.DataFrame(
@@ -440,13 +440,14 @@ def test_result_attr_consistency(
     """Result dataset attributes need to be approximately the same."""
     for expected, current, file_name in map_result_data()[0][result_name]:
         for expected_attr_name, expected_attr_value in expected.attrs.items():
-
+            if expected_attr_name == "source_path":
+                continue
             assert (
                 expected_attr_name in current.attrs.keys()
             ), f"Missing result attribute: {expected_attr_name!r} in {file_name!r}"
 
             if isinstance(expected_attr_value, str):
-                assert expected_attr_value == current.attrs[expected_attr_name]
+                assert expected_attr_value == current.attrs[expected_attr_name], expected_attr_name
             else:
                 assert allclose(
                     expected_attr_value, current.attrs[expected_attr_name], print_fail=20
