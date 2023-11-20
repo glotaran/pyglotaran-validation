@@ -185,7 +185,7 @@ def coord_test(
             f"data_var {data_var_name!r}"
         )
 
-        if exact_match or expected_coord_value.data.dtype == object:
+        if exact_match or np.issubdtype(expected_coord_value.data.dtype, np.str_):
             assert np.array_equal(expected_coord_value, current_coord_value), (
                 f"Coordinate value mismatch in {file_name!r}, "
                 f"data_var {data_var_name!r} and {expected_coord_name=}"
