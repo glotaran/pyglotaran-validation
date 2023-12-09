@@ -126,7 +126,7 @@ def get_current_result_path() -> Path:
 def rename_with_suffix(
     expected_name: str, suffixed_names: Iterable[str], current_keys: Iterable[str]
 ) -> str:
-    """Prepace ``expected_name`` with the suffixed version in the dataset keys.
+    """Replace ``expected_name`` with the suffixed version in the dataset keys.
 
     Parameters
     ----------
@@ -197,6 +197,86 @@ def coord_test(
             )
 
 
+def calculate_singular_vectors_compare_sign(
+    expected_result: xr.Dataset, current_result: xr.Dataset, data_var_name: str
+) -> xr.DataArray:
+    """Calculate the signs of expected vs. current singular vectors for a given ``data_var_name``.
+
+    Note:
+    -----
+    We sum long the non SV index dimension to prevent false positive detecting of sign flips in
+    the numerical noise.
+
+    Parameters
+    ----------
+    expected_result : xr.Dataset
+        Expected result dataset.
+    current_result : xr.Dataset
+        Current result dataset.
+    data_var_name : str
+        Name of the singular vector data variable.
+
+    Returns
+    -------
+    xr.DataArray
+        1D DataArray with dimension of the singular vectors index.
+    """
+    assert "singular_vectors" in data_var_name
+    expected_values = expected_result.data_vars[data_var_name]
+    sum_dim = next(
+        dim_name for dim_name in expected_values.dims if "singular_value" not in dim_name
+    )
+    return np.sign(expected_values.sum(dim=sum_dim)) * np.sign(
+        current_result.data_vars[data_var_name].sum(dim=sum_dim)
+    )
+
+
+def singular_vectors_compare_signs(
+    expected_result: xr.Dataset, current_result: xr.Dataset, expected_var_name: str, pre_fix: str
+) -> xr.DataArray:
+    """Calculate the signs of expected vs. current singular vectors for ``expected_var_name``.
+
+    This function is needed due to the fact the sign of singular vectors in singular value
+    decomposition can flip because the choice of sign in the singular vectors is arbitrary and can
+    be multiplied by -1 without affecting the validity of the decomposition.
+
+    In addition to ``calculate_singular_vectors_compare_sign`` this function also performs a
+    sanity check that the signs of LSV and the corresponding RSV comparing the current vs. expected
+    results compensate each other.
+
+    Parameters
+    ----------
+    expected_result : xr.Dataset
+        Expected result dataset.
+    current_result : xr.Dataset
+        Current result dataset.
+    expected_var_name : str
+        Name of the singular vector data variable.
+    pre_fix : str
+        Prefix of ``expected_var_name``.
+
+    Returns
+    -------
+    xr.DataArray
+        1D DataArray with dimension of the singular vectors index.
+
+    See Also
+    --------
+    calculate_singular_vectors_compare_sign
+    """
+    lsv_signs = calculate_singular_vectors_compare_sign(
+        expected_result, current_result, f"{pre_fix}left_singular_vectors"
+    )
+    rsv_signs = calculate_singular_vectors_compare_sign(
+        expected_result, current_result, f"{pre_fix}right_singular_vectors"
+    )
+    # Sanity check
+    # Since we don't save the full matrix we can assume lsv_signs.size == rsv_signs.size and
+    # thus check that that the flipped signs are at the same position.
+    assert all(lsv_signs.to_numpy() == rsv_signs.to_numpy())
+    return lsv_signs if "left" in expected_var_name else rsv_signs
+
+
 def data_var_test(
     allclose: AllCloseFixture,
     expected_result: xr.Dataset,
@@ -257,6 +337,9 @@ def data_var_test(
             "pre_fix"
         )
         expected_singular_values = expected_result.data_vars[f"{pre_fix}singular_values"]
+        expected_values = expected_values * singular_vectors_compare_signs(
+            expected_result, current_result, expected_var_name, pre_fix
+        )
 
         if expected_values.shape[0] == expected_singular_values.shape[0]:
             expected_values_scaled = np.diag(expected_singular_values).dot(expected_values.data)
