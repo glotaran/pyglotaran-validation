@@ -1,4 +1,5 @@
 """"Tests to ensure result consistency."""
+
 from __future__ import annotations
 
 import os
@@ -49,8 +50,7 @@ class AllCloseFixture(Protocol):
         equal_nan: bool = False,
         print_fail: int = 5,
         record_rmse: bool = True,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
 
 class GitError(Exception):
