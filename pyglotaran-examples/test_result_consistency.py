@@ -1,4 +1,4 @@
-""""Tests to ensure result consistency."""
+"""Tests to ensure result consistency."""
 
 from __future__ import annotations
 
@@ -10,7 +10,6 @@ from functools import lru_cache
 from pathlib import Path
 from textwrap import dedent
 from typing import TYPE_CHECKING
-from typing import Iterable
 from typing import Protocol
 from warnings import warn
 
@@ -20,6 +19,8 @@ import pytest
 import xarray as xr
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable
+
     from xarray.core.coordinates import DataArrayCoordinates
 
 
@@ -78,7 +79,8 @@ def get_compare_results_path() -> Path:
             capture_output=True,
         )
         if proc_clone.returncode != 0:
-            raise GitError(f"Error cloning {example_repo}:\n{proc_clone.stderr.decode()}")
+            msg = f"Error cloning {example_repo}:\n{proc_clone.stderr.decode()}"
+            raise GitError(msg)
     if "GITHUB" not in os.environ:
         proc_fetch = subprocess.run(
             [
@@ -94,7 +96,8 @@ def get_compare_results_path() -> Path:
             capture_output=True,
         )
         if proc_fetch.returncode != 0:
-            raise GitError(f"Error fetching {example_repo}:\n{proc_fetch.stderr.decode()}")
+            msg = f"Error fetching {example_repo}:\n{proc_fetch.stderr.decode()}"
+            raise GitError(msg)
         proc_reset = subprocess.run(
             [
                 "git",
@@ -107,7 +110,8 @@ def get_compare_results_path() -> Path:
             capture_output=True,
         )
         if proc_reset.returncode != 0:
-            raise GitError(f"Error resetting {example_repo}:\n{proc_reset.stderr.decode()}")
+            msg = f"Error resetting {example_repo}:\n{proc_reset.stderr.decode()}"
+            raise GitError(msg)
     return compare_result_folder
 
 
@@ -117,12 +121,10 @@ def get_current_result_path() -> Path:
     ci_path = Path(os.getenv("GITHUB_WORKSPACE", "")) / "comparison-results-current"
     if local_path.exists():
         return local_path
-    elif ci_path.exists():
+    if ci_path.exists():
         return ci_path
-    else:
-        raise ValueError(
-            f"No current results present at {local_path} or {ci_path}, {RUN_EXAMPLES_MSG}"
-        )
+    msg = f"No current results present at {local_path} or {ci_path}, {RUN_EXAMPLES_MSG}"
+    raise ValueError(msg)
 
 
 def rename_with_suffix(
@@ -337,7 +339,8 @@ def data_var_test(
                     - expected: {expected_values.dims}
                     - current:  {current_values.dims}
                     """
-                )
+                ),
+                stacklevel=2,
             )
             expected_values = expected_values.transpose(*current_values.dims)
         rtol = 1e-4  # instead of 1e-5
@@ -407,7 +410,8 @@ def map_result_files(file_glob_pattern: str) -> dict[str, list[tuple[Path, Path]
                 Using Path in environment variable COMPARE_RESULTS_LOCAL:
                 {compare_results_path.as_posix()}
                 """
-            )
+            ),
+            stacklevel=2,
         )
         try:
             if not compare_results_path.exists():
@@ -421,9 +425,8 @@ def map_result_files(file_glob_pattern: str) -> dict[str, list[tuple[Path, Path]
                 )
         except OSError as exception:
             if str(compare_results_path).startswith(('"', "'")):
-                raise ValueError(
-                    "Path in COMPARE_RESULTS_LOCAL should not start with ' or \""
-                ) from exception
+                msg = "Path in COMPARE_RESULTS_LOCAL should not start with ' or \""
+                raise ValueError(msg) from exception
             raise exception
     else:
         compare_results_path = get_compare_results_path()
@@ -455,7 +458,8 @@ def map_result_files(file_glob_pattern: str) -> dict[str, list[tuple[Path, Path]
             warn(
                 UserWarning(
                     f"No current result for: {expected_result_file.as_posix()}, {RUN_EXAMPLES_MSG}"
-                )
+                ),
+                stacklevel=2,
             )
     return result_map
 
