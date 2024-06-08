@@ -1,4 +1,5 @@
 """"Tests to ensure result consistency."""
+
 from __future__ import annotations
 
 import os
@@ -37,6 +38,8 @@ ALLOW_MISSING_COORDS = {"spectral": ("matrix", "species_concentration")}
 
 SVD_PATTERN = re.compile(r"(?P<pre_fix>.+?)(right|left)_singular_vectors")
 
+MISSING_RESULT_FILES = set()
+
 
 class AllCloseFixture(Protocol):
     def __call__(
@@ -49,8 +52,7 @@ class AllCloseFixture(Protocol):
         equal_nan: bool = False,
         print_fail: int = 5,
         record_rmse: bool = True,
-    ) -> bool:
-        ...
+    ) -> bool: ...
 
 
 class GitError(Exception):
@@ -156,6 +158,7 @@ def coord_test(
     data_var_name: str = "unknown",
 ) -> None:
     """Run tests that coordinates are exactly equal if string coords or close."""
+    __tracebackhide__ = True
     for expected_coord_name, expected_coord_value in expected_coords.items():
         if (
             expected_coord_name in ALLOW_MISSING_COORDS
@@ -180,12 +183,16 @@ def coord_test(
 
         current_coord_value = current_coords[expected_coord_name]
 
-        assert expected_coord_name in current_coords.keys(), (
+        assert expected_coord_name in current_coords, (
             f"Missing coordinate: {expected_coord_name!r} in {file_name!r}, "
             f"data_var {data_var_name!r}"
         )
 
-        if exact_match or np.issubdtype(expected_coord_value.data.dtype, np.str_):
+        if (
+            exact_match
+            or np.issubdtype(expected_coord_value.data.dtype, np.str_)
+            or np.issubdtype(expected_coord_value.data.dtype, object)
+        ):
             assert np.array_equal(expected_coord_value, current_coord_value), (
                 f"Coordinate value mismatch in {file_name!r}, "
                 f"data_var {data_var_name!r} and {expected_coord_name=}"
@@ -264,6 +271,7 @@ def singular_vectors_compare_signs(
     --------
     calculate_singular_vectors_compare_sign
     """
+    __tracebackhide__ = True
     lsv_signs = calculate_singular_vectors_compare_sign(
         expected_result, current_result, f"{pre_fix}left_singular_vectors"
     )
@@ -285,6 +293,7 @@ def data_var_test(
     expected_var_name: str,
 ) -> None:
     """Run test that a data_var of the current_result is close to the expected_result."""
+    __tracebackhide__ = True
     expected_values = expected_result.data_vars[expected_var_name]
 
     # weighted_data were always calculated and now will only be calculated
@@ -316,7 +325,7 @@ def data_var_test(
     eps = np.finfo(np.float32).eps
     rtol = 1e-5  # default value of allclose
     if expected_var_name.endswith("residual"):  # type:ignore[operator]
-        eps = max(eps, expected_result["data"].values.max() * eps)
+        eps = max(eps, expected_result["data"].to_numpy().max() * eps)
 
     if "singular_vectors" in expected_var_name:  # type:ignore[operator]
         # Sometimes the coords in the (right) singular vectors are swapped
@@ -432,9 +441,17 @@ def map_result_files(file_glob_pattern: str) -> dict[str, list[tuple[Path, Path]
         current_result_file = current_result_path / expected_result_file.relative_to(
             compare_results_path
         )
+        if current_result_file.is_file() is False and "parameters" in current_result_file.name:
+            current_result_file = (
+                current_result_file.parent
+                / f"parameters_{current_result_file.name.replace('_parameters','')}"
+            )
         if current_result_file.exists():
             result_map[key].append((expected_result_file, current_result_file))
         else:
+            MISSING_RESULT_FILES.add(
+                expected_result_file.relative_to(compare_results_path).as_posix()
+            )
             warn(
                 UserWarning(
                     f"No current result for: {expected_result_file.as_posix()}, {RUN_EXAMPLES_MSG}"
@@ -459,7 +476,7 @@ def map_result_data() -> tuple[dict[str, list[tuple[xr.Dataset, xr.Dataset, str]
                     expected_result_file.name,
                 )
             )
-            for data_var_name in expected_result.data_vars.keys():
+            for data_var_name in expected_result.data_vars:
                 if data_var_name != "data":
                     data_var_names.add(data_var_name)
     return result_map, data_var_names
@@ -526,7 +543,7 @@ def test_result_attr_consistency(
             if expected_attr_name == "source_path":
                 continue
             assert (
-                expected_attr_name in current.attrs.keys()
+                expected_attr_name in current.attrs
             ), f"Missing result attribute: {expected_attr_name!r} in {file_name!r}"
 
             if isinstance(expected_attr_value, str):
@@ -544,8 +561,16 @@ def test_result_data_var_consistency(
 ):
     """Result dataset data variables need to be approximately the same."""
     for expected_result, current_result, file_name in map_result_data()[0][result_name]:
-        if expected_var_name in expected_result.data_vars.keys():
+        if expected_var_name in expected_result.data_vars:
             data_var_test(allclose, expected_result, current_result, file_name, expected_var_name)
+
+
+def test_all_result_files_found():
+    """Check that there were no missing files."""
+    error_str = "\n".join(MISSING_RESULT_FILES)
+    assert (
+        len(MISSING_RESULT_FILES) == 0
+    ), f"Missing files in {get_current_result_path().as_posix()}: \n{error_str}"
 
 
 if __name__ == "__main__":
