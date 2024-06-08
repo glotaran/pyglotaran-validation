@@ -1,7 +1,6 @@
 repos:
-  # Formatters
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v4.6.0
     hooks:
       - id: check-ast
       - id: check-builtin-literals
@@ -12,78 +11,36 @@ repos:
       - id: fix-encoding-pragma
         args: [--remove]
 
-  - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
-    hooks:
-      - id: pyupgrade
-        types: [file]
-        types_or: [python, pyi]
-        args: [--py38-plus]
-
   - repo: https://github.com/MarcoGorelli/absolufy-imports
     rev: v0.3.1
     hooks:
       - id: absolufy-imports
-        exclude: ^benchmark
-        types: [file]
-        types_or: [python, pyi]
 
-  - repo: https://github.com/psf/black
-    rev: 23.11.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    # Ruff version.
+    rev: v0.4.8
     hooks:
-      - id: black
-        types: [file]
-        types_or: [python, pyi]
-        language_version: python3
-
-  - repo: https://github.com/PyCQA/isort
-    rev: 5.12.0
-    hooks:
-      - id: isort
-        types: [file]
-        types_or: [python, pyi]
-        minimum_pre_commit_version: 2.9.0
-
-  # Linters
-  - repo: https://github.com/asottile/yesqa
-    rev: v1.5.0
-    hooks:
-      - id: yesqa
-        types: [file]
-        types_or: [python, pyi]
-        additional_dependencies: [flake8-docstrings, flake8-print>=5.0.0]
-
-  - repo: https://github.com/PyCQA/flake8
-    rev: 6.1.0
-    hooks:
-      - id: flake8
-        types: [file]
-        types_or: [python, pyi]
-        additional_dependencies:
-          [flake8-pyi, flake8-comprehensions, flake8-print>=5.0.0]
+      - id: ruff
+        name: "ruff sort imports"
+        args:
+          - "--fix"
+          - "--select=I"
+        alias: isort
+      - id: ruff-format
+      # Commands above are both formatters an not linters
+      # See also: https://github.com/astral-sh/ruff/discussions/7310#discussioncomment-7102010
+      - id: ruff
+        name: "ruff lint"
 
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.7.1
-    hooks:
-      - id: mypy
-        additional_dependencies: [types-all]
-
-  - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
-      - id: rst-backticks
-      - id: python-check-blanket-noqa
-        exclude: "docs|tests?"
-      - id: python-check-blanket-type-ignore
-        exclude: "docs|tests?"
-      - id: python-use-type-annotations
-      - id: rst-directive-colons
-      - id: rst-inline-touching-normal
+      - id: mypy
+        exclude: "docs"
+        additional_dependencies: ["types-all"]
 
   - repo: https://github.com/codespell-project/codespell
-    rev: v2.2.6
+    rev: v2.3.0
     hooks:
       - id: codespell
-        types: [file]
-        types_or: [python, pyi, markdown, rst, jupyter]
-        args: [-L doas]
+        files: ".py|.rst"
