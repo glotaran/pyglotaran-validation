@@ -25,4 +25,4 @@ runs:
       shell: bash
       if: inputs.set_example_list != 'all'
       run: |
-        pytest ${{ github.action_path }}/${{ inputs.set_example_list }}
+        pytest -rf ${{ github.action_path }}/${{ inputs.set_example_list }}
