@@ -42,3 +42,8 @@ repos:
     hooks:
       - id: codespell
         files: ".py|.rst"
+
+  - repo: https://github.com/rhysd/actionlint
+    rev: "v1.7.1"
+    hooks:
+      - id: actionlint
