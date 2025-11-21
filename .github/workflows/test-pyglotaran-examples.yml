@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout pyglotaran-validation
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout compare results to comparison-results
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: "glotaran/pyglotaran-examples"
           ref: comparison-results
@@ -49,7 +49,7 @@ jobs:
         example_name: ${{fromJson(needs.create-example-list.outputs.example-list)}}
     steps:
       - name: Checkout pyglotaran main branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: "glotaran/pyglotaran"
 
@@ -137,10 +137,10 @@ jobs:
     needs: [collect-artifacts]
     steps:
       - name: Checkout pyglotaran-validation
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout compare results
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: "glotaran/pyglotaran-examples"
           ref: comparison-results
