@@ -6,10 +6,31 @@ inputs:
     description: "Which validator to run {all, pyglotaran-examples}"
     default: "all"
     required: true
+  reference_root:
+    description: "Root containing the reference result tree"
+    default: "comparison-results"
+    required: false
+  current_root:
+    description: "Root containing the current result tree"
+    default: "comparison-results-current"
+    required: false
 
 runs:
   using: "composite"
   steps:
+    - name: Validate validator input
+      shell: bash
+      env:
+        VALIDATION_NAME: ${{ inputs.validation_name }}
+      run: |
+        case "$VALIDATION_NAME" in
+          all|pyglotaran-examples) ;;
+          *)
+            echo "::error::validation_name must be all or pyglotaran-examples" >&2
+            exit 2
+            ;;
+        esac
+
     - name: Install requirements
       shell: bash
       run: |
@@ -17,12 +38,21 @@ runs:
 
     - name: Run all validation tests
       shell: bash
-      if: inputs.set_example_list == 'all'
+      if: inputs.validation_name == 'all'
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        PYGLOTARAN_REFERENCE_ROOT: ${{ inputs.reference_root }}
+        PYGLOTARAN_CURRENT_ROOT: ${{ inputs.current_root }}
       run: |
-        pytest ${{ github.action_path }}
+        pytest "$ACTION_PATH"
 
-    - name: Run ${{ inputs.set_example_list }} validation tests
+    - name: Run ${{ inputs.validation_name }} validation tests
       shell: bash
-      if: inputs.set_example_list != 'all'
+      if: inputs.validation_name != 'all'
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        VALIDATION_NAME: ${{ inputs.validation_name }}
+        PYGLOTARAN_REFERENCE_ROOT: ${{ inputs.reference_root }}
+        PYGLOTARAN_CURRENT_ROOT: ${{ inputs.current_root }}
       run: |
-        pytest -ra ${{ github.action_path }}/${{ inputs.set_example_list }}
+        pytest -ra "$ACTION_PATH/$VALIDATION_NAME"

@@ -62,6 +62,14 @@ class GitError(Exception):
 
 def get_compare_results_path() -> Path:
     """Ensure that the comparison-results exist, are up to date and return their path."""
+    if explicit_path := os.getenv("PYGLOTARAN_REFERENCE_ROOT"):
+        compare_results_path = Path(explicit_path)
+        if not compare_results_path.is_dir():
+            raise ValueError(
+                "Path in PYGLOTARAN_REFERENCE_ROOT is not a directory: "
+                f"{compare_results_path}"
+            )
+        return compare_results_path
     compare_result_folder = HERE / "comparison-results"
     example_repo = "https://github.com/glotaran/pyglotaran-examples.git"
     if not compare_result_folder.exists():
@@ -117,6 +125,14 @@ def get_compare_results_path() -> Path:
 
 def get_current_result_path() -> Path:
     """Get the path of the current results."""
+    if explicit_path := os.getenv("PYGLOTARAN_CURRENT_ROOT"):
+        current_result_path = Path(explicit_path)
+        if not current_result_path.is_dir():
+            raise ValueError(
+                "Path in PYGLOTARAN_CURRENT_ROOT is not a directory: "
+                f"{current_result_path}"
+            )
+        return current_result_path
     local_path = Path.home() / "pyglotaran_examples_results"
     ci_path = Path(os.getenv("GITHUB_WORKSPACE", "")) / "comparison-results-current"
     if local_path.exists():
