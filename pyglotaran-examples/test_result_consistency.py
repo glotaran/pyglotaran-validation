@@ -11,6 +11,7 @@ from pathlib import Path
 from textwrap import dedent
 from typing import TYPE_CHECKING
 from typing import Protocol
+from typing import cast
 from warnings import warn
 
 import numpy as np
@@ -19,6 +20,7 @@ import pytest
 import xarray as xr
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
     from collections.abc import Iterable
 
     from xarray.core.coordinates import DataArrayCoordinates
@@ -140,17 +142,17 @@ def get_current_result_path() -> Path:
 
 
 def rename_with_suffix(
-    expected_name: str, suffixed_names: Iterable[str], current_keys: Iterable[str]
+    expected_name: Hashable, suffixed_names: Iterable[str], current_keys: Iterable[Hashable]
 ) -> str:
     """Replace ``expected_name`` with the suffixed version in the dataset keys.
 
     Parameters
     ----------
-    expected_name: str
+    expected_name: Hashable
         Expected name of a variable (data_var, coord)
     suffixed_names: list[str]
         Names that are allowed/expected to have suffixes.
-    current_keys: Iterable[str]
+    current_keys: Iterable[Hashable]
         Keys of the current dataset.
 
     Returns
@@ -158,9 +160,10 @@ def rename_with_suffix(
     str
         Updated expected var name.
     """
-    if expected_name in suffixed_names:
-        return next((key for key in current_keys if key.startswith(expected_name)), expected_name)
-    return expected_name
+    name = str(expected_name)
+    if name in suffixed_names:
+        return next((key for key in map(str, current_keys) if key.startswith(name)), name)
+    return name
 
 
 def coord_test(
@@ -245,10 +248,12 @@ def calculate_singular_vectors_compare_sign(
     assert "singular_vectors" in data_var_name
     expected_values = expected_result.data_vars[data_var_name]
     sum_dim = next(
-        dim_name for dim_name in expected_values.dims if "singular_value" not in dim_name
+        str(dim_name) for dim_name in expected_values.dims if "singular_value" not in str(dim_name)
     )
-    return np.sign(expected_values.sum(dim=sum_dim)) * np.sign(
-        current_result.data_vars[data_var_name].sum(dim=sum_dim)
+    return cast(
+        "xr.DataArray",
+        np.sign(expected_values.sum(dim=sum_dim))
+        * np.sign(current_result.data_vars[data_var_name].sum(dim=sum_dim)),
     )
 
 
@@ -338,10 +343,10 @@ def data_var_test(
 
     eps = np.finfo(np.float32).eps
     rtol = 1e-5  # default value of allclose
-    if expected_var_name.endswith("residual"):  # type:ignore[operator]
+    if expected_var_name.endswith("residual"):
         eps = max(eps, expected_result["data"].to_numpy().max() * eps)
 
-    if "singular_vectors" in expected_var_name:  # type:ignore[operator]
+    if "singular_vectors" in expected_var_name:
         # Sometimes the coords in the (right) singular vectors are swapped
         if expected_values.dims != current_values.dims:
             warn(
@@ -407,7 +412,7 @@ def data_var_test(
         current_values.coords,
         file_name,
         allclose,
-        data_var_name=expected_var_name,  # type:ignore[operator]
+        data_var_name=expected_var_name,
     )
 
 
@@ -480,7 +485,7 @@ def map_result_files(file_glob_pattern: str) -> dict[str, list[tuple[Path, Path]
 def map_result_data() -> tuple[dict[str, list[tuple[xr.Dataset, xr.Dataset, str]]], set[str]]:
     """Load all datasets and map them in a tuple of dict and set of data_var names."""
     result_map = defaultdict(list)
-    data_var_names = set()
+    data_var_names: set[str] = set()
     result_file_map = map_result_files(file_glob_pattern="*.nc")
     for key, path_list in result_file_map.items():
         for expected_result_file, current_result_file in path_list:
@@ -494,7 +499,7 @@ def map_result_data() -> tuple[dict[str, list[tuple[xr.Dataset, xr.Dataset, str]
             )
             for data_var_name in expected_result.data_vars:
                 if data_var_name != "data":
-                    data_var_names.add(data_var_name)
+                    data_var_names.add(str(data_var_name))
     return result_map, data_var_names
 
 
@@ -544,7 +549,7 @@ def test_result_parameter_consistency(
     """Optimized parameters need to be approximately the same"""
     for compare_df in map_result_parameters()[result_name]:
         assert allclose(
-            compare_df["expected"].values, compare_df["current"].values, print_fail=20
+            compare_df["expected"].to_numpy(), compare_df["current"].to_numpy(), print_fail=20
         ), f"Parameter Mismatch: {compare_df.index}"
 
 
