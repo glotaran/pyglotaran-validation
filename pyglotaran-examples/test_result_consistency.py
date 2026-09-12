@@ -39,7 +39,7 @@ ALLOW_MISSING_COORDS = {"spectral": ("matrix", "species_concentration")}
 
 SVD_PATTERN = re.compile(r"(?P<pre_fix>.+?)(right|left)_singular_vectors")
 
-MISSING_RESULT_FILES = set()
+MISSING_RESULT_FILES: set[str] = set()
 
 
 class AllCloseFixture(Protocol):
@@ -65,10 +65,8 @@ def get_compare_results_path() -> Path:
     if explicit_path := os.getenv("PYGLOTARAN_REFERENCE_ROOT"):
         compare_results_path = Path(explicit_path)
         if not compare_results_path.is_dir():
-            raise ValueError(
-                "Path in PYGLOTARAN_REFERENCE_ROOT is not a directory: "
-                f"{compare_results_path}"
-            )
+            msg = f"Path in PYGLOTARAN_REFERENCE_ROOT is not a directory: {compare_results_path}"
+            raise ValueError(msg)
         return compare_results_path
     compare_result_folder = HERE / "comparison-results"
     example_repo = "https://github.com/glotaran/pyglotaran-examples.git"
@@ -128,10 +126,8 @@ def get_current_result_path() -> Path:
     if explicit_path := os.getenv("PYGLOTARAN_CURRENT_ROOT"):
         current_result_path = Path(explicit_path)
         if not current_result_path.is_dir():
-            raise ValueError(
-                "Path in PYGLOTARAN_CURRENT_ROOT is not a directory: "
-                f"{current_result_path}"
-            )
+            msg = f"Path in PYGLOTARAN_CURRENT_ROOT is not a directory: {current_result_path}"
+            raise ValueError(msg)
         return current_result_path
     local_path = Path.home() / "pyglotaran_examples_results"
     ci_path = Path(os.getenv("GITHUB_WORKSPACE", "")) / "comparison-results-current"
@@ -335,9 +331,9 @@ def data_var_test(
         current_result.data_vars.keys(),
     )
 
-    assert (
-        expected_var_name in current_result.data_vars
-    ), f"Missing data_var: {expected_var_name!r} in {file_name!r}"
+    assert expected_var_name in current_result.data_vars, (
+        f"Missing data_var: {expected_var_name!r} in {file_name!r}"
+    )
     current_values = current_result.data_vars[expected_var_name]
 
     eps = np.finfo(np.float32).eps
@@ -402,7 +398,7 @@ def data_var_test(
         "With sum of absolute difference: "
         f"{float(np.sum(abs_diff))} and shape: {expected_values.shape}\n"
         "Mean difference: "
-        f"{float(np.sum(abs_diff))/np.prod(expected_values.shape)}\n"
+        f"{float(np.sum(abs_diff)) / np.prod(expected_values.shape)}\n"
         f"Using: \n - {rtol=} \n - {eps=} \n - {float_resolution=}"
     )
 
@@ -463,7 +459,7 @@ def map_result_files(file_glob_pattern: str) -> dict[str, list[tuple[Path, Path]
         if current_result_file.is_file() is False and "parameters" in current_result_file.name:
             current_result_file = (
                 current_result_file.parent
-                / f"parameters_{current_result_file.name.replace('_parameters','')}"
+                / f"parameters_{current_result_file.name.replace('_parameters', '')}"
             )
         if current_result_file.exists():
             result_map[key].append((expected_result_file, current_result_file))
@@ -527,9 +523,9 @@ def test_original_data_exact_consistency(
 ):
     """The original data need to be exactly the same."""
     for expected_result, current_result, file_name in map_result_data()[0][result_name]:
-        assert np.array_equal(
-            expected_result.data.data, current_result.data.data
-        ), f"Original data mismatch: {result_name!r} in {file_name!r}"
+        assert np.array_equal(expected_result.data.data, current_result.data.data), (
+            f"Original data mismatch: {result_name!r} in {file_name!r}"
+        )
         coord_test(
             expected_result.data.coords,
             current_result.data.coords,
@@ -562,9 +558,9 @@ def test_result_attr_consistency(
         for expected_attr_name, expected_attr_value in expected.attrs.items():
             if expected_attr_name == "source_path":
                 continue
-            assert (
-                expected_attr_name in current.attrs
-            ), f"Missing result attribute: {expected_attr_name!r} in {file_name!r}"
+            assert expected_attr_name in current.attrs, (
+                f"Missing result attribute: {expected_attr_name!r} in {file_name!r}"
+            )
 
             if isinstance(expected_attr_value, str):
                 assert expected_attr_value == current.attrs[expected_attr_name], expected_attr_name
@@ -588,9 +584,9 @@ def test_result_data_var_consistency(
 def test_all_result_files_found():
     """Check that there were no missing files."""
     error_str = "\n".join(MISSING_RESULT_FILES)
-    assert (
-        len(MISSING_RESULT_FILES) == 0
-    ), f"Missing files in {get_current_result_path().as_posix()}: \n{error_str}"
+    assert len(MISSING_RESULT_FILES) == 0, (
+        f"Missing files in {get_current_result_path().as_posix()}: \n{error_str}"
+    )
 
 
 if __name__ == "__main__":
