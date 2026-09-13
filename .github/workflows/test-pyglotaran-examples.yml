@@ -9,10 +9,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout pyglotaran-validation
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout compare results to comparison-results
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: "glotaran/pyglotaran-examples"
           ref: comparison-results
@@ -49,12 +49,12 @@ jobs:
         example_name: ${{fromJson(needs.create-example-list.outputs.example-list)}}
     steps:
       - name: Checkout pyglotaran main branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: "glotaran/pyglotaran"
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.10"
       - name: Install pyglotaran
@@ -76,13 +76,13 @@ jobs:
 
       - name: Upload Example Plots Artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: example-notebooks-${{ matrix.example_name }}
           path: ${{ steps.example-run.outputs.notebook-path }}
 
       - name: Upload Example Results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: example-results-${{ matrix.example_name }}
           path: ~/pyglotaran_examples_results
@@ -94,40 +94,40 @@ jobs:
     needs: [run-examples]
     steps:
       - name: Download Notebooks Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: example-notebooks
           pattern: example-notebooks-*
           merge-multiple: true
 
       - name: Upload Example Notebooks Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: example-notebooks
           path: example-notebooks
           overwrite: true
 
       - name: Delete Intermediate Notebooks artifacts
-        uses: GeekyEggo/delete-artifact@v5
+        uses: GeekyEggo/delete-artifact@v6
         with:
           name: example-notebooks-*
 
       - name: Download Result Artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           path: example-results
           pattern: example-results-*
           merge-multiple: true
 
       - name: Upload Example Result Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: example-results
           path: example-results
           overwrite: true
 
       - name: Delete Intermediate Result artifacts
-        uses: GeekyEggo/delete-artifact@v5
+        uses: GeekyEggo/delete-artifact@v6
         with:
           name: example-results-*
 
@@ -137,17 +137,17 @@ jobs:
     needs: [collect-artifacts]
     steps:
       - name: Checkout pyglotaran-validation
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Checkout compare results
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: "glotaran/pyglotaran-examples"
           ref: comparison-results
           path: comparison-results
 
       - name: Download result artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: example-results
           path: comparison-results-current
@@ -163,7 +163,7 @@ jobs:
           echo "::endgroup::"
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.10"
 

@@ -11,6 +11,7 @@ from pathlib import Path
 from textwrap import dedent
 from typing import TYPE_CHECKING
 from typing import Protocol
+from typing import cast
 from warnings import warn
 
 import numpy as np
@@ -19,6 +20,7 @@ import pytest
 import xarray as xr
 
 if TYPE_CHECKING:
+    from collections.abc import Hashable
     from collections.abc import Iterable
 
     from xarray.core.coordinates import DataArrayCoordinates
@@ -39,7 +41,7 @@ ALLOW_MISSING_COORDS = {"spectral": ("matrix", "species_concentration")}
 
 SVD_PATTERN = re.compile(r"(?P<pre_fix>.+?)(right|left)_singular_vectors")
 
-MISSING_RESULT_FILES = set()
+MISSING_RESULT_FILES: set[str] = set()
 
 
 class AllCloseFixture(Protocol):
@@ -62,6 +64,12 @@ class GitError(Exception):
 
 def get_compare_results_path() -> Path:
     """Ensure that the comparison-results exist, are up to date and return their path."""
+    if explicit_path := os.getenv("PYGLOTARAN_REFERENCE_ROOT"):
+        compare_results_path = Path(explicit_path)
+        if not compare_results_path.is_dir():
+            msg = f"Path in PYGLOTARAN_REFERENCE_ROOT is not a directory: {compare_results_path}"
+            raise ValueError(msg)
+        return compare_results_path
     compare_result_folder = HERE / "comparison-results"
     example_repo = "https://github.com/glotaran/pyglotaran-examples.git"
     if not compare_result_folder.exists():
@@ -117,6 +125,12 @@ def get_compare_results_path() -> Path:
 
 def get_current_result_path() -> Path:
     """Get the path of the current results."""
+    if explicit_path := os.getenv("PYGLOTARAN_CURRENT_ROOT"):
+        current_result_path = Path(explicit_path)
+        if not current_result_path.is_dir():
+            msg = f"Path in PYGLOTARAN_CURRENT_ROOT is not a directory: {current_result_path}"
+            raise ValueError(msg)
+        return current_result_path
     local_path = Path.home() / "pyglotaran_examples_results"
     ci_path = Path(os.getenv("GITHUB_WORKSPACE", "")) / "comparison-results-current"
     if local_path.exists():
@@ -128,17 +142,17 @@ def get_current_result_path() -> Path:
 
 
 def rename_with_suffix(
-    expected_name: str, suffixed_names: Iterable[str], current_keys: Iterable[str]
+    expected_name: Hashable, suffixed_names: Iterable[str], current_keys: Iterable[Hashable]
 ) -> str:
     """Replace ``expected_name`` with the suffixed version in the dataset keys.
 
     Parameters
     ----------
-    expected_name: str
+    expected_name: Hashable
         Expected name of a variable (data_var, coord)
     suffixed_names: list[str]
         Names that are allowed/expected to have suffixes.
-    current_keys: Iterable[str]
+    current_keys: Iterable[Hashable]
         Keys of the current dataset.
 
     Returns
@@ -146,9 +160,10 @@ def rename_with_suffix(
     str
         Updated expected var name.
     """
-    if expected_name in suffixed_names:
-        return next((key for key in current_keys if key.startswith(expected_name)), expected_name)
-    return expected_name
+    name = str(expected_name)
+    if name in suffixed_names:
+        return next((key for key in map(str, current_keys) if key.startswith(name)), name)
+    return name
 
 
 def coord_test(
@@ -233,10 +248,12 @@ def calculate_singular_vectors_compare_sign(
     assert "singular_vectors" in data_var_name
     expected_values = expected_result.data_vars[data_var_name]
     sum_dim = next(
-        dim_name for dim_name in expected_values.dims if "singular_value" not in dim_name
+        str(dim_name) for dim_name in expected_values.dims if "singular_value" not in str(dim_name)
     )
-    return np.sign(expected_values.sum(dim=sum_dim)) * np.sign(
-        current_result.data_vars[data_var_name].sum(dim=sum_dim)
+    return cast(
+        "xr.DataArray",
+        np.sign(expected_values.sum(dim=sum_dim))
+        * np.sign(current_result.data_vars[data_var_name].sum(dim=sum_dim)),
     )
 
 
@@ -319,17 +336,17 @@ def data_var_test(
         current_result.data_vars.keys(),
     )
 
-    assert (
-        expected_var_name in current_result.data_vars
-    ), f"Missing data_var: {expected_var_name!r} in {file_name!r}"
+    assert expected_var_name in current_result.data_vars, (
+        f"Missing data_var: {expected_var_name!r} in {file_name!r}"
+    )
     current_values = current_result.data_vars[expected_var_name]
 
     eps = np.finfo(np.float32).eps
     rtol = 1e-5  # default value of allclose
-    if expected_var_name.endswith("residual"):  # type:ignore[operator]
+    if expected_var_name.endswith("residual"):
         eps = max(eps, expected_result["data"].to_numpy().max() * eps)
 
-    if "singular_vectors" in expected_var_name:  # type:ignore[operator]
+    if "singular_vectors" in expected_var_name:
         # Sometimes the coords in the (right) singular vectors are swapped
         if expected_values.dims != current_values.dims:
             warn(
@@ -386,7 +403,7 @@ def data_var_test(
         "With sum of absolute difference: "
         f"{float(np.sum(abs_diff))} and shape: {expected_values.shape}\n"
         "Mean difference: "
-        f"{float(np.sum(abs_diff))/np.prod(expected_values.shape)}\n"
+        f"{float(np.sum(abs_diff)) / np.prod(expected_values.shape)}\n"
         f"Using: \n - {rtol=} \n - {eps=} \n - {float_resolution=}"
     )
 
@@ -395,7 +412,7 @@ def data_var_test(
         current_values.coords,
         file_name,
         allclose,
-        data_var_name=expected_var_name,  # type:ignore[operator]
+        data_var_name=expected_var_name,
     )
 
 
@@ -447,7 +464,7 @@ def map_result_files(file_glob_pattern: str) -> dict[str, list[tuple[Path, Path]
         if current_result_file.is_file() is False and "parameters" in current_result_file.name:
             current_result_file = (
                 current_result_file.parent
-                / f"parameters_{current_result_file.name.replace('_parameters','')}"
+                / f"parameters_{current_result_file.name.replace('_parameters', '')}"
             )
         if current_result_file.exists():
             result_map[key].append((expected_result_file, current_result_file))
@@ -468,7 +485,7 @@ def map_result_files(file_glob_pattern: str) -> dict[str, list[tuple[Path, Path]
 def map_result_data() -> tuple[dict[str, list[tuple[xr.Dataset, xr.Dataset, str]]], set[str]]:
     """Load all datasets and map them in a tuple of dict and set of data_var names."""
     result_map = defaultdict(list)
-    data_var_names = set()
+    data_var_names: set[str] = set()
     result_file_map = map_result_files(file_glob_pattern="*.nc")
     for key, path_list in result_file_map.items():
         for expected_result_file, current_result_file in path_list:
@@ -482,7 +499,7 @@ def map_result_data() -> tuple[dict[str, list[tuple[xr.Dataset, xr.Dataset, str]
             )
             for data_var_name in expected_result.data_vars:
                 if data_var_name != "data":
-                    data_var_names.add(data_var_name)
+                    data_var_names.add(str(data_var_name))
     return result_map, data_var_names
 
 
@@ -511,9 +528,9 @@ def test_original_data_exact_consistency(
 ):
     """The original data need to be exactly the same."""
     for expected_result, current_result, file_name in map_result_data()[0][result_name]:
-        assert np.array_equal(
-            expected_result.data.data, current_result.data.data
-        ), f"Original data mismatch: {result_name!r} in {file_name!r}"
+        assert np.array_equal(expected_result.data.data, current_result.data.data), (
+            f"Original data mismatch: {result_name!r} in {file_name!r}"
+        )
         coord_test(
             expected_result.data.coords,
             current_result.data.coords,
@@ -532,7 +549,7 @@ def test_result_parameter_consistency(
     """Optimized parameters need to be approximately the same"""
     for compare_df in map_result_parameters()[result_name]:
         assert allclose(
-            compare_df["expected"].values, compare_df["current"].values, print_fail=20
+            compare_df["expected"].to_numpy(), compare_df["current"].to_numpy(), print_fail=20
         ), f"Parameter Mismatch: {compare_df.index}"
 
 
@@ -546,9 +563,9 @@ def test_result_attr_consistency(
         for expected_attr_name, expected_attr_value in expected.attrs.items():
             if expected_attr_name == "source_path":
                 continue
-            assert (
-                expected_attr_name in current.attrs
-            ), f"Missing result attribute: {expected_attr_name!r} in {file_name!r}"
+            assert expected_attr_name in current.attrs, (
+                f"Missing result attribute: {expected_attr_name!r} in {file_name!r}"
+            )
 
             if isinstance(expected_attr_value, str):
                 assert expected_attr_value == current.attrs[expected_attr_name], expected_attr_name
@@ -572,9 +589,9 @@ def test_result_data_var_consistency(
 def test_all_result_files_found():
     """Check that there were no missing files."""
     error_str = "\n".join(MISSING_RESULT_FILES)
-    assert (
-        len(MISSING_RESULT_FILES) == 0
-    ), f"Missing files in {get_current_result_path().as_posix()}: \n{error_str}"
+    assert len(MISSING_RESULT_FILES) == 0, (
+        f"Missing files in {get_current_result_path().as_posix()}: \n{error_str}"
+    )
 
 
 if __name__ == "__main__":

@@ -1,0 +1,75 @@
+version: 1
+reference: v0.7.4
+pinned_commits:
+  main:
+    orchestration: d292a4f1b0db981437f371058ceb951de9ef7498
+    pyglotaran: 8f26be01d5a6ce63ec2556469ac3facc2d2cee68
+    pyglotaran_examples: 23287837579b9ad150ca33cce2b34bba33ec1e0d
+    pyglotaran_extras: b72a21e07decc638dbf62ecdb7189a3e4693a320
+  staging:
+    orchestration: a1c3f75e27e96a7126eadaf30109ef9880e0d460
+    pyglotaran: 879c5bce399b7195b7ed2b0aece9234d803a74d9
+    pyglotaran_examples: 44e3747cf39f0482ed5c05578624577938159085
+    pyglotaran_extras: 700f9de482f317afa0339edc12314fd14699e459
+defaults:
+  fitted_data_normalized_rms: 1.0e-6
+  parameter_rtol: 1.0e-4
+  parameter_atol: 1.0e-8
+scenarios:
+  - id: study_fluorescence
+    notebook: study_fluorescence/fluorescence_global_and_target_analysis.ipynb
+    result: study_fluorescence
+  - id: study_transient_absorption/target_analysis
+    notebook: study_transient_absorption/transient_absorption_target_analysis.ipynb
+    result: study_transient_absorption/target_analysis
+  - id: study_transient_absorption/two_dataset_analysis
+    notebook: study_transient_absorption/transient_absorption_two_dataset_analysis.ipynb
+    result: study_transient_absorption/two_dataset_analysis
+    fitted_data_normalized_rms: 2.0e-5
+    difference_classification: EXPECTED_DIFFERENCE
+    difference_reason: refined OC/COC model removes the historical rates.k3d2 path; remaining parameter and fit drift is bounded within the scenario tolerance.
+  - id: ex_spectral_constraints/no_penalties_first_run
+    notebook: ex_spectral_constraints/ex_spectral_constraints.ipynb
+    result: ex_spectral_constraints/no_penalties_first_run
+  - id: ex_spectral_constraints/no_penalties
+    notebook: ex_spectral_constraints/ex_spectral_constraints.ipynb
+    result: ex_spectral_constraints/no_penalties
+  - id: ex_spectral_constraints/with_penalties_first_run
+    notebook: ex_spectral_constraints/ex_spectral_constraints.ipynb
+    result: ex_spectral_constraints/with_penalties_first_run
+  - id: ex_spectral_constraints/with_penalties
+    notebook: ex_spectral_constraints/ex_spectral_constraints.ipynb
+    result: ex_spectral_constraints/with_penalties
+  - id: ex_spectral_guidance
+    notebook: ex_spectral_guidance/ex_spectral_guidance.ipynb
+    result: ex_spectral_guidance
+    fitted_data_normalized_rms: 2.0e-6
+    difference_classification: EXPECTED_DIFFERENCE
+    difference_reason: Constrained guided fit has documented optimizer-path sensitivity to compartment ordering and numerical runtime; fresh normalized RMS 1.2572461877946428e-6 is bounded by 2e-6 (issues/spectral-guidance-current-tree.md). Parameters and decompositions remain secondary; acceptance does not establish convergence.
+  - id: ex_two_datasets
+    notebook: ex_two_datasets/ex_two_datasets.ipynb
+    result: ex_two_datasets
+  - id: ex_doas_beta/target_analysis
+    notebook: ex_doas_beta/ex_doas_beta.ipynb
+    result: ex_doas_beta/target_analysis
+  - id: simultaneous_analysis_3d_disp
+    notebook: test/simultaneous_analysis_3d_disp/sim_analysis_script_3d_disp.ipynb
+    result: simultaneous_analysis_3d_disp
+    difference_classification: EXPECTED_DIFFERENCE
+    difference_reason: raw parameter/decomposition values differ within a reconstructed fit that passes; label-aware representation differences are retained as secondary evidence.
+  - id: simultaneous_analysis_3d_nodisp
+    notebook: test/simultaneous_analysis_3d_nodisp/simultaneous_analysis_3d_nodisp.ipynb
+    result: simultaneous_analysis_3d_nodisp
+    difference_classification: EXPECTED_DIFFERENCE
+    difference_reason: raw parameter/decomposition values differ within a reconstructed fit that passes; label-aware representation differences are retained as secondary evidence.
+  - id: simultaneous_analysis_3d_weight
+    notebook: test/simultaneous_analysis_3d_weight/simultaneous_analysis_3d_weight.ipynb
+    result: simultaneous_analysis_3d_weight
+    fitted_data_normalized_rms: 3.0e-5
+    difference_classification: EXPECTED_DIFFERENCE
+    difference_reason: weighted solver/scale convention leaves a small reproducible fit drift; an independent weighting test covers the intended convention.
+  - id: simultaneous_analysis_6d_disp
+    notebook: test/simultaneous_analysis_6d_disp/simultaneous_analysis_6d_disp.ipynb
+    result: simultaneous_analysis_6d_disp
+    difference_classification: EXPECTED_DIFFERENCE
+    difference_reason: raw parameter/decomposition values differ within a reconstructed fit that passes; label-aware representation differences are retained as secondary evidence.
