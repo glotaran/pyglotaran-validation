@@ -76,4 +76,6 @@ def first_data_array(dataset: xr.Dataset, preferred: str | None = None) -> xr.Da
 def scalar_metadata(value: Any) -> Any:
     """Convert numpy scalar values to JSON-friendly Python values."""
 
-    return value.item() if hasattr(value, "item") else value
+    if hasattr(value, "item") and getattr(value, "size", 1) == 1:
+        return value.item()
+    return value

@@ -13,6 +13,7 @@ import numpy as np
 import yaml
 from compatibility.load_result import load_result
 from compatibility.metrics import compare_arrays
+from compatibility.normalize import scalar_metadata
 
 if TYPE_CHECKING:
     import pandas as pd
@@ -303,8 +304,9 @@ def compare_results(
 
 
 def _json_default(value: Any) -> Any:
-    if hasattr(value, "item"):
-        return value.item()
+    normalized = scalar_metadata(value)
+    if normalized is not value:
+        return normalized
     if isinstance(value, Path):
         return str(value)
     return str(value)

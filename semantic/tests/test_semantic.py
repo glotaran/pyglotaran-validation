@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -11,7 +12,9 @@ import xarray as xr
 import yaml
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
+from compare_results import _json_default
 from compare_results import compare_results
+from compatibility.normalize import scalar_metadata
 from layout_fixtures import (
     test_loaders_project_monolithic_and_split_layouts_by_labels as make_pair,
 )
@@ -24,6 +27,19 @@ CONTRACT = {
     },
     "scenarios": [{"id": "fixture", "result": ".", "notebook": "fixture.ipynb"}],
 }
+
+
+@pytest.mark.parametrize("value", [np.int64(1), np.array(1), np.array([1]), np.array([[[1]]])])
+def test_scalar_metadata_single_element(value):
+    assert scalar_metadata(value) == 1
+    assert isinstance(scalar_metadata(value), int)
+    assert json.loads(json.dumps(value, default=_json_default)) == 1
+
+
+@pytest.mark.parametrize("value", [np.array([]), np.array([1, 2]), np.array([[1, 2]])])
+def test_scalar_metadata_non_scalar(value):
+    assert scalar_metadata(value) is value
+    assert json.loads(json.dumps(value, default=_json_default)) == str(value)
 
 
 def report(tmp_path):
