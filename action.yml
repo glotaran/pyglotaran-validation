@@ -6,6 +6,10 @@ inputs:
     description: "Which validator to run {all, pyglotaran-examples}"
     default: "all"
     required: true
+  comparison_mode:
+    description: "Comparison mode {legacy, semantic}"
+    default: "legacy"
+    required: false
   reference_root:
     description: "Root containing the reference result tree"
     default: "comparison-results"
@@ -14,15 +18,27 @@ inputs:
     description: "Root containing the current result tree"
     default: "comparison-results-current"
     required: false
+  report_path:
+    description: "Path for the semantic comparison report"
+    default: "semantic-report.json"
+    required: false
 
 runs:
   using: "composite"
   steps:
-    - name: Validate validator input
+    - name: Validate validator inputs
       shell: bash
       env:
+        COMPARISON_MODE: ${{ inputs.comparison_mode }}
         VALIDATION_NAME: ${{ inputs.validation_name }}
       run: |
+        case "$COMPARISON_MODE" in
+          legacy|semantic) ;;
+          *)
+            echo "::error::comparison_mode must be legacy or semantic" >&2
+            exit 2
+            ;;
+        esac
         case "$VALIDATION_NAME" in
           all|pyglotaran-examples) ;;
           *)
@@ -38,7 +54,7 @@ runs:
 
     - name: Run all validation tests
       shell: bash
-      if: inputs.validation_name == 'all'
+      if: inputs.comparison_mode == 'legacy' && inputs.validation_name == 'all'
       env:
         ACTION_PATH: ${{ github.action_path }}
         PYGLOTARAN_REFERENCE_ROOT: ${{ inputs.reference_root }}
@@ -48,7 +64,7 @@ runs:
 
     - name: Run ${{ inputs.validation_name }} validation tests
       shell: bash
-      if: inputs.validation_name != 'all'
+      if: inputs.comparison_mode == 'legacy' && inputs.validation_name != 'all'
       env:
         ACTION_PATH: ${{ github.action_path }}
         VALIDATION_NAME: ${{ inputs.validation_name }}
@@ -56,3 +72,19 @@ runs:
         PYGLOTARAN_CURRENT_ROOT: ${{ inputs.current_root }}
       run: |
         pytest -ra "$ACTION_PATH/$VALIDATION_NAME"
+
+    - name: Run semantic result comparison
+      shell: bash
+      if: inputs.comparison_mode == 'semantic'
+      env:
+        REFERENCE_ROOT: ${{ inputs.reference_root }}
+        CURRENT_ROOT: ${{ inputs.current_root }}
+        REPORT_PATH: ${{ inputs.report_path }}
+        SEMANTIC_SCRIPT: ${{ github.action_path }}/semantic/compare_results.py
+        SEMANTIC_MANIFEST: ${{ github.action_path }}/semantic/scenarios.yml
+      run: |
+        python "$SEMANTIC_SCRIPT" \
+          --main-root "$REFERENCE_ROOT" \
+          --staging-root "$CURRENT_ROOT" \
+          --manifest "$SEMANTIC_MANIFEST" \
+          --output "$REPORT_PATH"
