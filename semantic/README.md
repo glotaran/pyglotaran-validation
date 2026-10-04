@@ -18,8 +18,8 @@ and named dimensions may transpose, but extra dimension labels cannot disappear.
 Test with `python -m pytest semantic/tests -q`. The 3e-6 spectral-guidance
 exception accepts observed constrained-fit optimizer-path drift 1.257246e-6
 locally and 2.232767e-6 in CI;
-it is not proof of convergence. Default is 1e-6, transient two-dataset 2e-5,
-weighted 3D 3e-5. Do not increase these without fresh paired evidence.
+it is not proof of convergence. Default is 1e-6 and transient two-dataset 2e-5.
+Do not increase these without fresh paired evidence.
 
 Deployment requires publishing this action and updating the consumer validation
 gitlink. Existing validator commit ae5af096a186833c181871f7b0435d40858e3a98

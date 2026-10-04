@@ -65,9 +65,6 @@ scenarios:
   - id: simultaneous_analysis_3d_weight
     notebook: test/simultaneous_analysis_3d_weight/simultaneous_analysis_3d_weight.ipynb
     result: simultaneous_analysis_3d_weight
-    fitted_data_normalized_rms: 3.0e-5
-    difference_classification: EXPECTED_DIFFERENCE
-    difference_reason: weighted solver/scale convention leaves a small reproducible fit drift; an independent weighting test covers the intended convention.
   - id: simultaneous_analysis_6d_disp
     notebook: test/simultaneous_analysis_6d_disp/simultaneous_analysis_6d_disp.ipynb
     result: simultaneous_analysis_6d_disp
